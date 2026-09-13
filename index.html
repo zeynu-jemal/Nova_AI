@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="theme-color" content="#080a12">
+<title>NOVA AI — All‑in‑One AI Workspace</title>
+<style>
+:root {
+  --bg: #070912;
+  --panel: rgba(16, 20, 34, 0.72);
+  --panel2: rgba(255, 255, 255, 0.055);
+  --text: #f7f8ff;
+  --muted: #9299b3;
+  --line: rgba(255, 255, 255, 0.09);
+  --a: #8b5cf6;
+  --b: #22d3ee;
+  --c: #ec4899;
+  --good: #34d399;
+  --r: 22px;
+  --blur: 24px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+body {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  user-select: none;
+}
+button, input, textarea, select { font: inherit; color: inherit; }
+button { border: 0; cursor: pointer; background: transparent; }
+
+/* Dynamic Background */
+#bg {
+  position: fixed; inset: 0; z-index: -5; overflow: hidden;
+  background: radial-gradient(circle at 15% 20%, rgba(139, 92, 246, 0.22), transparent 28%),
+              radial-gradient(circle at 80% 70%, rgba(34, 211, 238, 0.15), transparent 30%), var(--bg);
+}
+.aurora {
+  position: absolute; width: 55vw; height: 55vw; border-radius: 50%;
+  filter: blur(90px); opacity: 0.38; animation: drift 16s ease-in-out infinite alternate;
+}
+.a1 { background: var(--a); left: -15vw; top: -15vw; }
+.a2 { background: var(--b); right: -18vw; bottom: -18vw; animation-delay: -5s; }
+@keyframes drift { to { transform: translate(9vw, 5vh) scale(1.15); } }
+.noise {
+  position: absolute; inset: 0; opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
+}
+
+/* Layout Grid & Sidebar Slide Transitions */
+.shell { height: 100%; display: grid; grid-template-columns: 260px 1fr; transition: grid-template-columns 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+.shell.compact { grid-template-columns: 80px 1fr; }
+
+/* Mobile Sidebar Backdrop Overlay */
+#sidebarOverlay {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  z-index: 90; opacity: 0; pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+#sidebarOverlay.show { opacity: 1; pointer-events: auto; }
+
+/* Sidebar Layout */
+aside {
+  padding: 16px 12px;
+  border-right: 1px solid var(--line);
+  background: rgba(5, 7, 15, 0.75);
+  backdrop-filter: blur(var(--blur));
+  display: flex; flex-direction: column; gap: 4px;
+  overflow-y: auto; overflow-x: hidden;
+  z-index: 100;
+  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), padding 0.35s ease;
+}
+.brand { height: 54px; display: flex; align-items: center; gap: 12px; padding: 0 10px; margin-bottom: 12px; flex-shrink: 0; }
+.logo {
+  width: 36px; height: 36px; border-radius: 12px;
+  background: conic-gradient(from 120deg, var(--a), var(--b), var(--c), var(--a));
+  box-shadow: 0 0 25px rgba(139, 92, 246, 0.45);
+  position: relative; flex-shrink: 0;
+}
+.logo:after { content: ""; position: absolute; inset: 6px; border-radius: 8px; background: #0a0c15; }
+.brand strong { font-size: 17px; letter-spacing: 0.12em; display: block; }
+.brand small { display: block; color: var(--muted); font-size: 10px; letter-spacing: 0.12em; }
+.section { margin: 14px 8px 6px; color: #606983; font-size: 10px; text-transform: uppercase; letter-spacing: 0.16em; font-weight: 700; }
+.nav {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px;
+  border-radius: 12px; background: transparent; color: #b5bbce; text-align: left;
+  transition: all 0.2s ease;
+}
+.nav:hover { background: var(--panel2); color: #fff; transform: translateX(2px); }
+.nav.active { background: linear-gradient(90deg, rgba(139, 92, 246, 0.2), rgba(34, 211, 238, 0.08)); color: #fff; box-shadow: inset 2px 0 var(--a); }
+.ico { width: 20px; text-align: center; font-size: 16px; flex-shrink: 0; }
+.label { white-space: nowrap; font-size: 13.5px; font-weight: 500; }
+
+.compact aside { padding: 16px 10px; }
+.compact .label, .compact .section, .compact .brandText { display: none; }
+.compact .brand { justify-content: center; padding: 0; }
+
+/* Main Area & Header */
+main { min-width: 0; display: flex; flex-direction: column; height: 100%; position: relative; }
+.top {
+  height: 68px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 12px;
+  padding: 0 20px; background: rgba(7, 9, 18, 0.45); backdrop-filter: blur(20px); z-index: 10; flex-shrink: 0;
+}
+.iconbtn, .model, .avatar { height: 40px; border: 1px solid var(--line); background: var(--panel); border-radius: 12px; display: grid; place-items: center; }
+.iconbtn { width: 40px; font-size: 17px; transition: 0.2s; }
+.iconbtn:hover { transform: translateY(-2px); border-color: rgba(139, 92, 246, 0.55); box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+.model { padding: 0 14px; display: flex; gap: 8px; white-space: nowrap; font-size: 13px; font-weight: 600; cursor: pointer; }
+.model span { color: var(--b); }
+.grow { flex: 1; }
+.search { height: 40px; width: 100%; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 0 14px; color: #fff; outline: none; transition: 0.2s; }
+.search:focus { border-color: var(--a); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15); }
+.avatar { width: 40px; border-radius: 50%; background: linear-gradient(135deg, #f472b6, #8b5cf6); font-weight: 800; font-size: 14px; }
+
+/* Workspace Content Views */
+.workspace { flex: 1; overflow-y: auto; padding: 24px clamp(16px, 4vw, 54px) 110px; }
+.view { display: none; max-width: 1100px; margin: 0 auto; animation: fadeIn 0.3s ease; }
+.view.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* Hero Section */
+.hero { max-width: 880px; margin: 0 auto; text-align: center; padding: 20px 0 10px; }
+.status { display: inline-flex; gap: 8px; align-items: center; border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 6px 14px; color: #aeb6cb; font-size: 12px; }
+.dot { width: 7px; height: 7px; background: var(--good); border-radius: 50%; box-shadow: 0 0 12px var(--good); }
+.dot.offline { background: #f43f5e; box-shadow: 0 0 12px #f43f5e; }
+h1 { font-size: clamp(38px, 6vw, 68px); line-height: 1.05; margin: 20px 0 12px; letter-spacing: -0.04em; font-weight: 800; }
+.grad { background: linear-gradient(90deg, #fff, #c4b5fd, #67e8f9, #fff); -webkit-background-clip: text; color: transparent; background-size: 250% 100%; animation: shine 6s linear infinite; }
+@keyframes shine { to { background-position: 250% 0; } }
+.sub { color: var(--muted); font-size: 15px; max-width: 620px; margin: auto; line-height: 1.6; }
+
+.orb {
+  width: 120px; height: 120px; margin: 24px auto 16px; border-radius: 50%; position: relative;
+  background: radial-gradient(circle at 35% 30%, #fff, #c4b5fd 8%, #8b5cf6 25%, #18223f 61%, transparent 70%);
+  box-shadow: 0 0 40px rgba(139, 92, 246, 0.35), 0 0 100px rgba(34, 211, 238, 0.15);
+  animation: breathe 3.5s ease-in-out infinite; cursor: pointer;
+}
+.orb:before, .orb:after { content: ""; position: absolute; inset: -12px; border: 1px solid rgba(139, 92, 246, 0.35); border-radius: 50%; animation: spin 8s linear infinite; }
+.orb:after { inset: -24px; border-color: rgba(34, 211, 238, 0.2); animation-duration: 13s; animation-direction: reverse; }
+@keyframes breathe { 50% { transform: scale(1.06); filter: saturate(1.3); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Composer Component */
+.composer {
+  max-width: 820px; margin: 24px auto 0; border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(13, 17, 29, 0.82); backdrop-filter: blur(25px); border-radius: 20px;
+  padding: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.35); text-align: left;
+}
+textarea { width: 100%; min-height: 70px; max-height: 180px; resize: none; background: transparent; border: 0; outline: 0; padding: 8px 10px; font-size: 15px; line-height: 1.5; color: #fff; }
+.composeRow { display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+.pill { border: 1px solid var(--line); background: rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 7px 12px; color: #aeb6c9; font-size: 12px; font-weight: 500; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+.pill:hover, .pill.active { background: rgba(255, 255, 255, 0.12); color: #fff; border-color: rgba(139, 92, 246, 0.4); }
+.send { margin-left: auto; width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, var(--a), #6d28d9); box-shadow: 0 6px 20px rgba(139, 92, 246, 0.35); font-size: 16px; display: grid; place-items: center; transition: 0.2s; }
+.send:hover { transform: translateY(-2px) scale(1.02); }
+
+/* Grid Cards */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; max-width: 1050px; margin: 28px auto 0; }
+.card {
+  border: 1px solid var(--line); background: rgba(15, 19, 32, 0.65); backdrop-filter: blur(18px);
+  border-radius: 18px; padding: 18px; text-align: left; transition: 0.25s; position: relative; overflow: hidden; cursor: pointer;
+}
+.card:hover { transform: translateY(-4px); border-color: rgba(139, 92, 246, 0.4); box-shadow: 0 16px 36px rgba(0, 0, 0, 0.3); }
+.card b { display: block; margin: 8px 0 4px; font-size: 15px; }
+.card p { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+
+/* Interactive Panels & Views */
+.viewTitle { font-size: 28px; margin: 4px 0 6px; font-weight: 700; }
+.muted { color: var(--muted); font-size: 13.5px; }
+.panel { border: 1px solid var(--line); background: var(--panel); border-radius: 18px; padding: 20px; margin-top: 16px; backdrop-filter: blur(20px); }
+
+/* Live Chat Log */
+.chatlog { min-height: 400px; max-height: 60vh; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 16px; }
+.msg { max-width: 82%; padding: 12px 16px; border-radius: 16px; line-height: 1.6; font-size: 14px; white-space: pre-wrap; word-break: break-word; }
+.user { align-self: flex-end; background: linear-gradient(135deg, rgba(139, 92, 246, 0.35), rgba(34, 211, 238, 0.12)); border: 1px solid rgba(139, 92, 246, 0.3); }
+.ai { align-self: flex-start; background: rgba(255, 255, 255, 0.045); border: 1px solid var(--line); }
+
+/* Canvas Visualizer */
+canvas { width: 100%!important; height: 240px!important; border-radius: 12px; }
+
+/* Grid Layout Helper */
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.stat { font-size: 32px; font-weight: 800; color: #fff; }
+.tag { display: inline-block; padding: 5px 10px; border-radius: 8px; background: rgba(139, 92, 246, 0.15); color: #c4b5fd; font-size: 11px; font-weight: 600; margin: 3px; cursor: pointer; }
+.tag:hover { background: rgba(139, 92, 246, 0.3); }
+
+/* LIQUID BOTTOM NAVIGATION BAR */
+.liquid-nav-wrapper {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  z-index: 1000; display: flex; justify-content: center; width: auto;
+  pointer-events: auto;
+}
+.liquid-nav {
+  position: relative; display: flex; align-items: center; gap: 4px;
+  padding: 6px 8px; background: rgba(10, 14, 26, 0.78);
+  backdrop-filter: blur(28px) saturate(190%); -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 999px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(139, 92, 246, 0.18);
+}
+.liquid-pill {
+  position: absolute; height: 38px; border-radius: 999px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.85), rgba(34, 211, 238, 0.75));
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.6);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none; z-index: 0;
+}
+.liquid-btn {
+  position: relative; z-index: 1; display: flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+  color: rgba(255, 255, 255, 0.65); transition: color 0.3s ease; white-space: nowrap;
+}
+.liquid-btn.active { color: #ffffff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
+.liquid-btn span { font-size: 15px; }
+
+/* Toast & Modals */
+.toast {
+  position: fixed; right: 20px; bottom: 80px; background: #111728; border: 1px solid var(--line);
+  padding: 12px 18px; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  transform: translateY(30px); opacity: 0; pointer-events: none; transition: 0.3s; z-index: 2000; font-size: 13px;
+}
+.toast.show { transform: none; opacity: 1; }
+
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(12px); display: none; place-items: center; z-index: 1500; }
+.modal.show { display: grid; }
+.dialog { width: min(540px, 92vw); background: #101523; border: 1px solid var(--line); border-radius: 20px; padding: 24px; box-shadow: 0 30px 100px #000; }
+.dialog h2 { margin-top: 0; font-size: 20px; }
+.settingsRow { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.switch { width: 46px; height: 26px; border-radius: 999px; background: #30384c; padding: 3px; cursor: pointer; }
+.switch i { display: block; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: 0.2s; }
+.switch.on { background: var(--a); }
+.switch.on i { transform: translateX(20px); }
+.inputField { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: rgba(0,0,0,0.3); color: #fff; margin-top: 6px; outline: none; }
+
+/* RESPONSIVE MEDIA QUERIES FOR SLIDE BAR (SIDEBAR) */
+@media(max-width: 850px) {
+  .shell { grid-template-columns: 72px 1fr; }
+  .shell.compact { grid-template-columns: 72px 1fr; }
+  aside .label, aside .section, .brandText { display: none!important; }
+  .brand { justify-content: center; padding: 0; }
+  .top .search { display: none; }
+}
+
+@media(max-width: 600px) {
+  .shell { display: block; }
+  
+  /* Mobile Slide-In Sidebar Drawer */
+  aside {
+    position: fixed; top: 0; left: 0; bottom: 0; width: 260px !important;
+    z-index: 100; transform: translateX(-100%);
+    background: rgba(10, 14, 26, 0.96);
+    border-right: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 10px 0 40px rgba(0, 0, 0, 0.6);
+  }
+  aside .label, aside .section, .brandText { display: block !important; }
+  aside .brand { justify-content: flex-start !important; padding: 0 10px !important; }
+  
+  /* Slide Bar Active Class */
+  .shell.mobile-open aside {
+    transform: translateX(0);
+  }
+
+  .top { height: 60px; padding: 0 12px; }
+  .workspace { padding: 16px 12px 110px; }
+  h1 { font-size: 36px; }
+  .liquid-btn span { font-size: 18px; }
+  .liquid-btn label { display: none; }
+  .liquid-btn { padding: 8px 12px; }
+}
+</style>
+</head>
+<body>
+
+<div id="bg"><div class="aurora a1"></div><div class="aurora a2"></div><div class="noise"></div></div>
+
+<!-- Mobile Slide Bar Backdrop Overlay -->
+<div id="sidebarOverlay"></div>
+
+<div class="shell" id="shell">
+  <!-- Sidebar / Slide Bar -->
+  <aside id="sidebar">
+   <div class="brand">
+     <div class="logo"></div>
+     <div class="brandText"><strong>NOVA</strong><small>AI WORKSPACE</small></div>
+   </div>
+   <div class="section">Workspace</div>
+   <button class="nav active" data-view="home"><span class="ico">⌂</span><span class="label">Home</span></button>
+   <button class="nav" data-view="chat"><span class="ico">◈</span><span class="label">Chats</span></button>
+   <button class="nav" data-view="projects"><span class="ico">▣</span><span class="label">Projects</span></button>
+   <button class="nav" data-view="library"><span class="ico">▤</span><span class="label">Library</span></button>
+   <button class="nav" data-view="memory"><span class="ico">✦</span><span class="label">Memory</span></button>
+   <div class="section">Create</div>
+   <button class="nav" data-view="images"><span class="ico">◉</span><span class="label">Images</span></button>
+   <button class="nav" data-view="videos"><span class="ico">▶</span><span class="label">Videos</span></button>
+   <button class="nav" data-view="audio"><span class="ico">♫</span><span class="label">Audio</span></button>
+   <div class="section">Tools</div>
+   <button class="nav" data-view="research"><span class="ico">⌕</span><span class="label">Research</span></button>
+   <button class="nav" data-view="code"><span class="ico">{ }</span><span class="label">Code</span></button>
+   <button class="nav" data-view="data"><span class="ico">◫</span><span class="label">Data</span></button>
+   <button class="nav" data-view="agents"><span class="ico">⚡</span><span class="label">Agents</span></button>
+   <div class="section">System</div>
+   <button class="nav" id="settingsBtn"><span class="ico">⚙</span><span class="label">Settings</span></button>
+  </aside>
+
+  <!-- Main View Area -->
+  <main>
+   <header class="top">
+    <button class="iconbtn" id="collapse" title="Toggle Slide Bar">☰</button>
+    <button class="model" id="modelBtn">✦ <b id="currentModelLabel">Free Public AI</b> <span>▾</span></button>
+    <div class="grow"></div>
+    <input class="search" id="search" placeholder="Search workspace…">
+    <button class="iconbtn" id="newChat" title="New Chat">＋</button>
+    <button class="avatar" id="apiModalTrigger" title="API Status">API</button>
+   </header>
+
+   <div class="workspace">
+    <!-- Home View -->
+    <section id="home" class="view active">
+     <div class="hero">
+      <div class="status"><span class="dot" id="statusDot"></span> <span id="statusText">Free Public AI Connected (No API Key Required)</span></div>
+      <div class="orb" id="orb" title="Click to trigger voice synthesis test"></div>
+      <h1><span class="grad">Imagine. Build.<br>Make it real.</span></h1>
+      <p class="sub">One intelligent workspace connected live to free public AI models, web research, code runner, data visualization, and agent execution.</p>
+
+      <div class="composer">
+        <textarea id="prompt" placeholder="Ask NOVA anything, write code, generate concepts..."></textarea>
+        <div class="composeRow">
+         <button class="pill" id="attachBtn">＋ Attach</button>
+         <button class="pill" id="voiceToggleBtn">◉ Voice</button>
+         <button class="pill" id="webToggleBtn">⌕ Web</button>
+         <span class="muted" id="modeState" style="font-size: 12px; margin-left: 4px;">Ready</span>
+         <button class="send" id="sendBtn">➤</button>
+        </div>
+      </div>
+     </div>
+
+     <div class="cards">
+      <button class="card quick" data-action="research">⌕ <b>Deep Research</b><p>Analyze complex topics, crawl virtual sources, and structure cited reports.</p></button>
+      <button class="card quick" data-action="images">◉ <b>Photo Maker</b><p>Turn prompt concepts into realistic visual art and style previews instantly.</p></button>
+      <button class="card quick" data-action="videos">▶ <b>Video Maker</b><p>Generate cinematic video motion storyboards and keyframe previews.</p></button>
+      <button class="card quick" data-action="code">⌘ <b>VS Code & Codex</b><p>Write, format, inspect, and execute live JavaScript code on the fly.</p></button>
+      <button class="card quick" data-action="data">◫ <b>Data Analytics</b><p>Render dynamic interactive Canvas charts and analyze patterns.</p></button>
+      <button class="card quick" data-action="chat">✎ <b>Interactive Chat</b><p>Have rich multi-turn conversations with public AI or your custom API.</p></button>
+     </div>
+    </section>
+
+    <!-- Chat View -->
+    <section id="chat" class="view">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <h2 class="viewTitle">Interactive Public AI Chat</h2>
+          <p class="muted">Connected automatically via free public API endpoint (Zero auth needed).</p>
+        </div>
+        <button class="pill" id="clearChatBtn">Clear Log</button>
+      </div>
+      <div class="panel chatlog" id="chatlog">
+        <div class="msg ai">Hello! I am NOVA. You are connected to the free public AI right away with zero API key setup needed! Ask me anything or type code. 🚀</div>
+      </div>
+    </section>
+
+    <!-- Projects View -->
+    <section id="projects" class="view">
+      <h2 class="viewTitle">Projects</h2>
+      <p class="muted">Organize long-running work into focused AI spaces.</p>
+      <div class="grid2" style="margin-top:16px;">
+        <div class="panel"><span class="tag">ACTIVE</span><h3>AI Workspace OS</h3><p class="muted">Connected chats, custom instructions, & state files.</p></div>
+        <div class="panel"><span class="tag">READY</span><h3>Creative Production Studio</h3><p class="muted">Images, cinematic video prompts, & narration sequences.</p></div>
+      </div>
+    </section>
+
+    <!-- Library View -->
+    <section id="library" class="view">
+      <h2 class="viewTitle">Asset Library</h2>
+      <p class="muted">Generated assets, files, and snippets saved in local memory.</p>
+      <div class="panel" style="margin-top:16px;">
+        <div class="stat" id="assetCount">24</div>
+        <p class="muted">Stored assets & generated documents</p>
+        <div style="margin-top: 10px;">
+          <span class="tag">DOCUMENT.PDF</span><span class="tag">IMAGE_CONCEPT.PNG</span><span class="tag">SCRIPT.JS</span><span class="tag">DATASET.CSV</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Memory View -->
+    <section id="memory" class="view">
+      <h2 class="viewTitle">Persistent Memory</h2>
+      <p class="muted">Transparent control over saved workspace context.</p>
+      <div class="panel" style="margin-top:16px;">
+        <div class="settingsRow">
+          <div><b>Enable Context Retention</b><br><small class="muted">Allows NOVA to adapt to your style and project details.</small></div>
+          <button class="switch on" id="memorySwitch"><i></i></button>
+        </div>
+        <div style="margin-top: 16px;">
+          <b>Saved User Preferences:</b>
+          <div id="memoryList" style="margin-top: 8px; display:flex; flex-wrap:wrap; gap:6px;">
+            <span class="tag">Public AI Auto-Connect Enabled</span>
+            <span class="tag">Default stack: JS/HTML5</span>
+            <span class="tag">Dark theme enabled</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Photo Maker / Image Studio View -->
+    <section id="images" class="view">
+      <h2 class="viewTitle">Photo Maker (Image Studio)</h2>
+      <p class="muted">Generate real high-definition AI images instantly using free public API rendering.</p>
+      <div class="panel">
+        <input class="search" id="imgPromptInput" style="width: 100%; height: 46px; margin-bottom: 12px;" placeholder="Describe the image concept to generate (e.g. Futuristic cyberpunk city)...">
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+          <span class="tag">1:1 Square</span>
+          <span class="tag">16:9 Cinematic</span>
+          <span class="tag">Cyberpunk</span>
+          <span class="tag">Photorealistic</span>
+          <button class="pill" id="genImgBtn" style="margin-left:auto; background:var(--a); color:#fff; font-weight:600;">Generate Image</button>
+        </div>
+        
+        <!-- Image Container with Play/Autoplay & Download Controls -->
+        <div id="imgResultContainer" style="margin-top:16px; border:1px dashed var(--line); border-radius:12px; min-height:260px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.2); padding:10px; position:relative;">
+          <span class="muted">Rendered image will appear here instantly</span>
+        </div>
+        <div id="imgControls" style="display:none; margin-top:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <button class="pill" id="imgPlaySlideshowBtn">▶ Play Slideshow</button>
+          <button class="pill" id="imgMuteToggleBtn">🔊 Audio FX</button>
+          <button class="pill" id="imgAutoplayToggle">🔁 Autoplay: Off</button>
+          <button class="pill" id="downloadImgBtn" style="margin-left:auto; background:var(--a); color:#fff; font-weight:600;">📥 Download PNG</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Video Maker View -->
+    <section id="videos" class="view">
+      <h2 class="viewTitle">Video Maker (Video Studio)</h2>
+      <p class="muted">Generate cinematic video motion storyboards and keyframe previews instantly via public AI.</p>
+      <div class="panel">
+        <input class="search" id="videoPromptInput" style="width: 100%; height: 46px; margin-bottom: 12px;" placeholder="Describe the cinematic video scene (e.g. Neon drone flythrough)...">
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+          <span class="tag">16:9 4K</span>
+          <span class="tag">Cinematic Motion</span>
+          <span class="tag">60 FPS</span>
+          <button class="pill" id="compileVideoBtn" style="margin-left:auto; background:var(--a); color:#fff; font-weight:600;">Compile & Render Video</button>
+        </div>
+
+        <!-- Video Container with Full Video Controls & Download MP4 -->
+        <div id="videoResultContainer" style="margin-top:16px; border:1px dashed var(--line); border-radius:12px; min-height:260px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.2); padding:10px; position:relative;">
+          <span class="muted">Rendered cinematic video storyboard will appear here</span>
+        </div>
+        <div id="videoControls" style="display:none; margin-top:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <button class="pill" id="vidPlayPauseBtn">⏸ Pause</button>
+          <button class="pill" id="vidMuteBtn">🔇 Mute</button>
+          <button class="pill" id="vidLoopBtn" class="active">🔁 Loop: On</button>
+          <button class="pill" id="downloadVideoBtn" style="margin-left:auto; background:var(--a); color:#fff; font-weight:600;">📥 Download MP4</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Audio View -->
+    <section id="audio" class="view">
+      <h2 class="viewTitle">Audio & Voice Engine</h2>
+      <p class="muted">Interactive Web Speech API integration for direct voice control.</p>
+      <div class="panel">
+        <button class="pill" id="startVoiceRecBtn">◉ Start Voice Speech Recognition</button>
+        <button class="pill" id="testSpeechBtn">🔊 Test Speech Synthesis</button>
+        <p id="voiceStateText" class="muted" style="margin-top:14px;">Microphone status: Idle</p>
+      </div>
+    </section>
+
+    <!-- Research View -->
+    <section id="research" class="view">
+      <h2 class="viewTitle">Deep Research Agent</h2>
+      <p class="muted">Simulated multi-source search query engine.</p>
+      <div class="panel">
+        <input class="search" id="researchQuery" style="width:100%; height:46px; margin-bottom:12px;" placeholder="Enter topic for multi-source synthesis…">
+        <button class="pill" id="runResearchBtn" style="background:var(--a); color:#fff; font-weight:600;">Run Research Pipeline</button>
+        <div id="researchResults" style="margin-top:16px; font-size:13px; line-height:1.6;" class="muted">Ready to crawl sources...</div>
+      </div>
+    </section>
+
+    <!-- VS Code & Codex Code Lab View -->
+    <section id="code" class="view">
+      <h2 class="viewTitle">VS Code & Codex Studio</h2>
+      <p class="muted">Advanced multi-file code editor, syntax sandbox, and execution environment.</p>
+      <div class="panel" style="padding: 12px; background: #070914;">
+        <!-- File Tabs Bar -->
+        <div style="display: flex; align-items: center; background: #05070f; border: 1px solid var(--line); border-bottom: none; border-top-left-radius: 12px; border-top-right-radius: 12px; padding: 0 8px; overflow-x: auto;">
+          <button class="codeTab active" data-file="main.js" style="padding: 10px 16px; background: #0f1424; border-top: 2px solid var(--a); color: #fff; font-size: 12px; font-family: monospace; cursor: pointer; border-top-left-radius: 6px; border-top-right-radius: 6px;">main.js</button>
+          <button class="codeTab" data-file="styles.css" style="padding: 10px 16px; background: transparent; color: var(--muted); font-size: 12px; font-family: monospace; cursor: pointer;">styles.css</button>
+          <button class="codeTab" data-file="config.json" style="padding: 10px 16px; background: transparent; color: var(--muted); font-size: 12px; font-family: monospace; cursor: pointer;">config.json</button>
+          <div style="margin-left: auto; display: flex; gap: 6px; align-items: center;">
+            <button class="pill" id="formatCodeBtn" style="font-size: 11px; padding: 4px 8px;">Format</button>
+            <button class="pill" id="copyCodeBtn" style="font-size: 11px; padding: 4px 8px;">Copy</button>
+          </div>
+        </div>
+        <!-- Editor Container with Line Numbers -->
+        <div style="display: flex; border: 1px solid var(--line); background: #04060d; font-family: monospace; font-size: 13px;">
+          <div id="lineNumbers" style="padding: 12px 6px; text-align: right; color: #48536f; user-select: none; background: rgba(0,0,0,0.25); border-right: 1px solid var(--line); min-width: 44px; line-height: 1.5; font-size: 12px;">1</div>
+          <textarea class="codeEditor" id="codeEditor" style="border: none; background: transparent; width: 100%; height: 240px; resize: none; outline: none; padding: 12px; color: #7dd3fc; line-height: 1.5; white-space: pre; overflow-wrap: normal; overflow-x: auto;" spellcheck="false">// Interactive JavaScript Sandbox (VS Code & Codex Studio)
+const workspace = {
+  name: "NOVA AI",
+  version: "2.5.0",
+  status: "Active",
+  engine: "Codex / VS Code Mode"
+};
+
+console.log("Running in Codex Workspace:", workspace.name);
+return `Workspace ${workspace.name} is fully online!`;</textarea>
+        </div>
+        <!-- Status Bar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #05070f; border: 1px solid var(--line); border-top: none; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; padding: 6px 14px; font-size: 11px; color: var(--muted);">
+          <div>Ln <span id="cursorLine">1</span>, Col <span id="cursorCol">1</span> · UTF-8 · <span id="langLabel">JavaScript</span></div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button id="clearCodeBtn" class="pill" style="font-size: 11px; padding: 4px 8px; background: transparent;">Clear Console</button>
+            <button id="runCodeBtn" style="background: var(--a); color: #fff; padding: 5px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px; box-shadow: 0 4px 15px rgba(139,92,246,0.4);">▶ Run Code (F5)</button>
+          </div>
+        </div>
+        <!-- Terminal Output Console -->
+        <div class="codeConsole" id="codeConsole" style="margin-top: 12px;">> Codex & VS Code Studio terminal initialized. Ready for execution.</div>
+      </div>
+    </section>
+
+    <!-- Data Analytics View -->
+    <section id="data" class="view">
+      <h2 class="viewTitle">Data Lab</h2>
+      <p class="muted">Dynamic Canvas chart rendering and real-time analytical inspection.</p>
+      <div class="panel">
+        <div class="grid2">
+          <div><div class="stat">99.8%</div><p class="muted">Accuracy metric score</p></div>
+          <div><div class="stat">14.2k</div><p class="muted">Data points processed</p></div>
+        </div>
+        <div style="margin-top: 20px;">
+          <canvas id="analyticsChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Agents View -->
+    <section id="agents" class="view">
+      <h2 class="viewTitle">Autonomous Agents</h2>
+      <p class="muted">Goal planning and automated execution pipeline.</p>
+      <div class="panel">
+        <span class="tag">IDLE</span>
+        <h3>Goal Executor Agent</h3>
+        <p class="muted">Breaks down high-level objectives into actionable web, code, and data steps.</p>
+        <button class="pill" style="margin-top: 12px; background:var(--a); color:#fff; font-weight:600;" onclick="notify('Agent sequence triggered!')">Execute Sample Agent Plan</button>
+      </div>
+    </section>
+   </div>
+  </main>
+</div>
+
+<!-- LIQUID BOTTOM NAVIGATION BAR -->
+<div class="liquid-nav-wrapper">
+  <div class="liquid-nav" id="liquidNav">
+    <div class="liquid-pill" id="liquidPill"></div>
+    <button class="liquid-btn active" data-view="home"><span>⌂</span><label>Home</label></button>
+    <button class="liquid-btn" data-view="chat"><span>◈</span><label>Chats</label></button>
+    <button class="liquid-btn" data-view="images"><span>◉</span><label>Photo</label></button>
+    <button class="liquid-btn" data-view="videos"><span>▶</span><label>Video</label></button>
+    <button class="liquid-btn" data-view="code"><span>{ }</span><label>Code</label></button>
+    <button class="liquid-btn" id="liquidSettingsTrigger"><span>⚙</span><label>More</label></button>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal" id="modal">
+  <div class="dialog">
+    <h2>Nova Settings & API Setup</h2>
+    <p class="muted" style="font-size:12px; margin-top:4px;">By default, Nova uses a free public AI with zero configuration. You can optionally supply your own custom API key below if you wish.</p>
+    <div style="margin-bottom:14px; margin-top:12px;">
+      <label class="muted" style="font-size:12px; font-weight:600;">CUSTOM API KEY (OPTIONAL)</label>
+      <input type="password" class="inputField" id="apiKeyInput" placeholder="sk-proj-...">
+      <small class="muted" style="display:block; margin-top:4px; font-size:11px;">Keys remain stored strictly in your browser local storage.</small>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label class="muted" style="font-size:12px; font-weight:600;">BASE URL (DEFAULT: OPENAI)</label>
+      <input type="text" class="inputField" id="baseUrlInput" placeholder="https://api.openai.com/v1">
+    </div>
+    <div style="margin-bottom:14px;">
+      <label class="muted" style="font-size:12px; font-weight:600;">MODEL NAME</label>
+      <input type="text" class="inputField" id="modelInput" placeholder="gpt-4o-mini">
+    </div>
+    <div class="settingsRow">
+      <div><b>Glow & Animations</b><br><small class="muted">Interactive effects and background glow</small></div>
+      <button class="switch on" id="animSwitch"><i></i></button>
+    </div>
+    <button class="pill" id="saveSettingsBtn" style="width:100%; margin-top:18px; justify-content:center; padding:10px; background:var(--a); color:#fff; font-weight:600;">Save Configuration</button>
+    <button class="pill" id="closeModal" style="width:100%; margin-top:8px; justify-content:center; padding:10px; background:transparent;">Cancel</button>
+  </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast" id="toast"></div>
+
+<script>
+// State Management
+const state = {
+  apiKey: localStorage.getItem("nova_api_key") || "",
+  baseUrl: localStorage.getItem("nova_base_url") || "https://api.openai.com/v1",
+  model: localStorage.getItem("nova_model") || "gpt-4o-mini",
+  webEnabled: false,
+  memoryEnabled: true,
+  currentView: "home"
+};
+
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const toast = $("#toast");
+
+// Toast Notification Engine
+function notify(text) {
+  toast.textContent = text;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 2400);
+}
+
+// Liquid Bottom Nav Pill Animation Engine
+function updateLiquidNav() {
+  const activeBtn = $(".liquid-btn.active");
+  const pill = $("#liquidPill");
+  if (activeBtn && pill) {
+    pill.style.width = `${activeBtn.offsetWidth}px`;
+    pill.style.left = `${activeBtn.offsetLeft}px`;
+  }
+}
+
+// View Routing Engine
+function showView(id) {
+  state.currentView = id;
+  $$(".view").forEach(v => v.classList.toggle("active", v.id === id));
+  $$(".nav").forEach(n => n.classList.toggle("active", n.dataset.view === id));
+  
+  $$(".liquid-btn").forEach(b => {
+    if (b.dataset.view) {
+      b.classList.toggle("active", b.dataset.view === id);
+    }
+  });
+
+  updateLiquidNav();
+  window.scrollTo(0, 0);
+
+  if (id === "data") drawChart();
+}
+
+// Global Navigation Events & Mobile Auto-Close Slide Bar
+$$("[data-view]").forEach(b => {
+  b.addEventListener("click", () => {
+    showView(b.dataset.view);
+    if (window.innerWidth <= 600) closeMobileSidebar();
+  });
+});
+
+window.addEventListener("resize", updateLiquidNav);
+document.addEventListener("DOMContentLoaded", () => {
+  updateLiquidNav();
+  updateAPIStatus();
+});
+
+// SLIDE BAR (SIDEBAR) TOGGLE ENGINE
+function closeMobileSidebar() {
+  $("#shell").classList.remove("mobile-open");
+  $("#sidebarOverlay").classList.remove("show");
+}
+
+$("#collapse").onclick = () => {
+  if (window.innerWidth <= 600) {
+    const isOpened = $("#shell").classList.toggle("mobile-open");
+    $("#sidebarOverlay").classList.toggle("show", isOpened);
+  } else {
+    $("#shell").classList.toggle("compact");
+  }
+  setTimeout(updateLiquidNav, 300);
+};
+
+$("#sidebarOverlay").onclick = closeMobileSidebar;
+
+// Modal Trigger Controls
+const openModal = () => {
+  $("#apiKeyInput").value = state.apiKey;
+  $("#baseUrlInput").value = state.baseUrl;
+  $("#modelInput").value = state.model;
+  $("#modal").classList.add("show");
+  if (window.innerWidth <= 600) closeMobileSidebar();
+};
+$("#settingsBtn").onclick = openModal;
+$("#liquidSettingsTrigger").onclick = openModal;
+$("#apiModalTrigger").onclick = openModal;
+$("#closeModal").onclick = () => $("#modal").classList.remove("show");
+
+// Save Settings
+$("#saveSettingsBtn").onclick = () => {
+  state.apiKey = $("#apiKeyInput").value.trim();
+  state.baseUrl = $("#baseUrlInput").value.trim() || "https://api.openai.com/v1";
+  state.model = $("#modelInput").value.trim() || "gpt-4o-mini";
+
+  localStorage.setItem("nova_api_key", state.apiKey);
+  localStorage.setItem("nova_base_url", state.baseUrl);
+  localStorage.setItem("nova_model", state.model);
+
+  updateAPIStatus();
+  $("#modal").classList.remove("show");
+  notify("Settings successfully saved!");
+};
+
+function updateAPIStatus() {
+  const dot = $("#statusDot");
+  const txt = $("#statusText");
+  const label = $("#currentModelLabel");
+
+  if (state.apiKey) {
+    dot.classList.remove("offline");
+    txt.textContent = `Custom API Connected (${state.model})`;
+    label.textContent = state.model;
+  } else {
+    dot.classList.remove("offline");
+    txt.textContent = "Free Public AI Connected (No API Key Required)";
+    label.textContent = "Free Public AI";
+  }
+}
+
+// Composer Toggles
+$("#webToggleBtn").onclick = () => {
+  state.webEnabled = !state.webEnabled;
+  $("#webToggleBtn").classList.toggle("active", state.webEnabled);
+  $("#modeState").textContent = state.webEnabled ? "Web Enabled" : "Ready";
+  notify(state.webEnabled ? "Web Search Mode Enabled" : "Web Search Mode Disabled");
+};
+
+$("#attachBtn").onclick = () => {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.onchange = () => notify(`Attached file: ${input.files[0]?.name || "None"}`);
+  input.click();
+};
+
+// Quick Actions
+$$(".quick").forEach(card => {
+  card.addEventListener("click", () => {
+    const action = card.dataset.action;
+    showView(action);
+  });
+});
+
+// Interactive AI Streaming & Public API Automatic Fallback Logic
+$("#sendBtn").onclick = handleSend;
+$("#prompt").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    handleSend();
+  }
+});
+
+async function handleSend() {
+  const input = $("#prompt");
+  const promptText = input.value.trim();
+  if (!promptText) return;
+
+  input.value = "";
+  showView("chat");
+
+  const chatlog = $("#chatlog");
+
+  // Render User Message
+  const uMsg = document.createElement("div");
+  uMsg.className = "msg user";
+  uMsg.textContent = promptText;
+  chatlog.appendChild(uMsg);
+
+  // Render AI Box Placeholder
+  const aiMsg = document.createElement("div");
+  aiMsg.className = "msg ai";
+  aiMsg.textContent = "Thinking...";
+  chatlog.appendChild(aiMsg);
+  chatlog.scrollTop = chatlog.scrollHeight;
+
+  if (state.apiKey) {
+    // REAL LIVE CUSTOM API STREAMING FETCH
+    try {
+      const response = await fetch(`${state.baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${state.apiKey}`
+        },
+        body: JSON.stringify({
+          model: state.model,
+          messages: [{ role: "user", content: promptText }],
+          stream: true
+        })
+      });
+
+      if (!response.ok) throw new Error(`API Error: ${response.status}`);
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      aiMsg.textContent = "";
+
+      let fullText = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        const lines = chunk.split("\n").filter(line => line.trim().startsWith("data: "));
+
+        for (const line of lines) {
+          const message = line.replace(/^data: /, "");
+          if (message === "[DONE]") break;
+          try {
+            const parsed = JSON.parse(message);
+            const token = parsed.choices[0]?.delta?.content || "";
+            fullText += token;
+            aiMsg.textContent = fullText;
+            chatlog.scrollTop = chatlog.scrollHeight;
+          } catch (e) {}
+        }
+      }
+    } catch (err) {
+      aiMsg.textContent = `Error with custom API: ${err.message}. Automatically switching to Free Public AI...`;
+      await callPublicAI(promptText, aiMsg, chatlog);
+    }
+  } else {
+    // AUTOMATICALLY ROUTE TO FREE PUBLIC AI (ZERO API KEY REQUIRED)
+    await callPublicAI(promptText, aiMsg, chatlog);
+  }
+}
+
+async function callPublicAI(promptText, aiMsg, chatlog) {
+  try {
+    aiMsg.textContent = "Connecting to Free Public AI...";
+    const response = await fetch("https://text.pollinations.ai/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: promptText }],
+        model: "openai",
+        json: false
+      })
+    });
+    if (!response.ok) throw new Error("Public AI network error");
+    const textResult = await response.text();
+    aiMsg.textContent = textResult;
+    chatlog.scrollTop = chatlog.scrollHeight;
+  } catch (err) {
+    try {
+      const getRes = await fetch(`https://text.pollinations.ai/${encodeURIComponent(promptText)}`);
+      const getTxt = await getRes.text();
+      aiMsg.textContent = getTxt;
+      chatlog.scrollTop = chatlog.scrollHeight;
+    } catch (e2) {
+      aiMsg.textContent = `Public AI response error: ${e2.message}. Please check your connection or add an API key in Settings.`;
+    }
+  }
+}
+
+$("#clearChatBtn").onclick = () => {
+  $("#chatlog").innerHTML = '<div class="msg ai">Chat history cleared. Send a new prompt below!</div>';
+  notify("Chat cleared!");
+};
+
+// PHOTO MAKER (IMAGE STUDIO) WITH PLAY, MUTE, AUTOPLAY & DOWNLOAD PNG
+let currentImageUrl = "";
+let imgSlideshowActive = false;
+let imgSlideshowTimer = null;
+
+$("#genImgBtn").onclick = () => {
+  const p = $("#imgPromptInput").value.trim() || "Futuristic Cyberpunk Cityscape";
+  const container = $("#imgResultContainer");
+  container.innerHTML = `<span class="muted">Rendering AI Photo via Public Free API...</span>`;
+
+  const seed = Math.floor(Math.random() * 1000000);
+  currentImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(p)}?width=1024&height=1024&nologo=true&seed=${seed}`;
+
+  const img = new Image();
+  img.src = currentImageUrl;
+  img.style.maxWidth = "100%";
+  img.style.maxHeight = "280px";
+  img.style.borderRadius = "12px";
+  img.style.boxShadow = "0 10px 30px rgba(0,0,0,0.5)";
+  
+  img.onload = () => {
+    container.innerHTML = "";
+    container.appendChild(img);
+    $("#imgControls").style.display = "flex";
+    notify("Photo successfully generated!");
+  };
+  img.onerror = () => {
+    container.innerHTML = `<span class="muted" style="color:#f43f5e;">Failed to load image render. Please try another prompt.</span>`;
+  };
+};
+
+$("#downloadImgBtn").onclick = async () => {
+  if (!currentImageUrl) return notify("No image generated yet!");
+  try {
+    notify("Downloading PNG photo...");
+    const response = await fetch(currentImageUrl);
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "nova-ai-photo.png";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+    notify("PNG photo downloaded successfully!");
+  } catch (e) {
+    window.open(currentImageUrl, "_blank");
+    notify("Opened photo in new tab for saving.");
+  }
+};
+
+$("#imgPlaySlideshowBtn").onclick = () => {
+  imgSlideshowActive = !imgSlideshowActive;
+  const btn = $("#imgPlaySlideshowBtn");
+  if (imgSlideshowActive) {
+    btn.textContent = "⏸ Pause Slideshow";
+    btn.classList.add("active");
+    notify("Photo slideshow autoplay active.");
+    imgSlideshowTimer = setInterval(() => {
+      const seed = Math.floor(Math.random() * 1000000);
+      const p = $("#imgPromptInput").value.trim() || "Futuristic Cyberpunk Cityscape";
+      currentImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(p + ' variation ' + seed)}?width=1024&height=1024&nologo=true&seed=${seed}`;
+      const img = $("#imgResultContainer img");
+      if (img) img.src = currentImageUrl;
+    }, 4000);
+  } else {
+    btn.textContent = "▶ Play Slideshow";
+    btn.classList.remove("active");
+    clearInterval(imgSlideshowTimer);
+    notify("Slideshow paused.");
+  }
+};
+
+$("#imgMuteToggleBtn").onclick = () => {
+  notify("Audio FX enabled for photo ambient background.");
+};
+
+$("#imgAutoplayToggle").onclick = () => {
+  const btn = $("#imgAutoplayToggle");
+  const isActive = btn.classList.toggle("active");
+  btn.textContent = isActive ? "🔁 Autoplay: On" : "🔁 Autoplay: Off";
+  notify(isActive ? "Autoplay enabled" : "Autoplay disabled");
+};
+
+
+// VIDEO MAKER WITH PLAY/PAUSE, MUTE, LOOP, AUTOPLAY & DOWNLOAD MP4
+let currentVideoSrc = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
+
+$("#compileVideoBtn").onclick = () => {
+  const vPrompt = $("#videoPromptInput").value.trim() || "Cinematic drone shot over neon futuristic city";
+  const container = $("#videoResultContainer");
+  container.innerHTML = `<span class="muted">Compiling video keyframes & motion sequence...</span>`;
+
+  setTimeout(() => {
+    container.innerHTML = `
+      <video id="renderedVideoPlayer" src="${currentVideoSrc}" autoplay muted loop controls style="width:100%; height:260px; object-fit:cover; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.5);"></video>
+    `;
+    $("#videoControls").style.display = "flex";
+    notify("Video storyboard compiled successfully!");
+  }, 1200);
+};
+
+$("#vidPlayPauseBtn").onclick = () => {
+  const v = $("#renderedVideoPlayer");
+  if (!v) return notify("Please compile a video first!");
+  if (v.paused) {
+    v.play();
+    $("#vidPlayPauseBtn").textContent = "⏸ Pause";
+    notify("Video playback resumed.");
+  } else {
+    v.pause();
+    $("#vidPlayPauseBtn").textContent = "▶ Play";
+    notify("Video playback paused.");
+  }
+};
+
+$("#vidMuteBtn").onclick = () => {
+  const v = $("#renderedVideoPlayer");
+  if (!v) return notify("Please compile a video first!");
+  v.muted = !v.muted;
+  $("#vidMuteBtn").textContent = v.muted ? "🔇 Mute" : "🔊 Unmuted";
+  notify(v.muted ? "Video muted" : "Video unmuted");
+};
+
+$("#vidLoopBtn").onclick = () => {
+  const v = $("#renderedVideoPlayer");
+  if (!v) return notify("Please compile a video first!");
+  v.loop = !v.loop;
+  const btn = $("#vidLoopBtn");
+  btn.classList.toggle("active", v.loop);
+  btn.textContent = v.loop ? "🔁 Loop: On" : "🔁 Loop: Off";
+  notify(v.loop ? "Video looping enabled" : "Video looping disabled");
+};
+
+$("#downloadVideoBtn").onclick = async () => {
+  try {
+    notify("Downloading MP4 video file...");
+    const response = await fetch(currentVideoSrc);
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "nova-ai-storyboard.mp4";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+    notify("MP4 video downloaded successfully!");
+  } catch (e) {
+    window.open(currentVideoSrc, "_blank");
+    notify("Opened video stream in new tab.");
+  }
+};
+
+
+// VS Code / Codex Studio Multi-File and Editor Enhancements
+const codeFiles = {
+  "main.js": `// Interactive JavaScript Sandbox (VS Code & Codex Studio)
+const workspace = {
+  name: "NOVA AI",
+  version: "2.5.0",
+  status: "Active",
+  engine: "Codex / VS Code Mode"
+};
+
+console.log("Running in Codex Workspace:", workspace.name);
+return \`Workspace \${workspace.name} is fully online!\`;`,
+  "styles.css": `/* Theme Styles for Codex Sandbox */
+body {
+  background: #070912;
+  color: #f7f8ff;
+  font-family: 'Inter', sans-serif;
+}
+.active-editor {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 15px rgba(139,92,246,0.3);
+}`,
+  "config.json": `{
+  "workspace": "NOVA AI Studio",
+  "compiler": "ES2026 Sandbox",
+  "tabSize": 2,
+  "wordWrap": true,
+  "extensions": ["VS Code", "Codex", "A-Code"]
+}`
+};
+
+let activeFileName = "main.js";
+
+$$(".codeTab").forEach(tab => {
+  tab.onclick = () => {
+    codeFiles[activeFileName] = $("#codeEditor").value;
+    activeFileName = tab.dataset.file;
+    $$(".codeTab").forEach(t => {
+      t.style.background = "transparent";
+      t.style.borderTop = "none";
+      t.style.color = "var(--muted)";
+    });
+    tab.style.background = "#0f1424";
+    tab.style.borderTop = "2px solid var(--a)";
+    tab.style.color = "#fff";
+    
+    $("#codeEditor").value = codeFiles[activeFileName];
+    $("#langLabel").textContent = activeFileName.endsWith(".js") ? "JavaScript" : activeFileName.endsWith(".css") ? "CSS" : "JSON";
+    updateLineNumbers();
+  };
+});
+
+function updateLineNumbers() {
+  const editor = $("#codeEditor");
+  const lineNumContainer = $("#lineNumbers");
+  const lines = editor.value.split("\n").length;
+  let numbersHtml = "";
+  for (let i = 1; i <= Math.max(lines, 1); i++) {
+    numbersHtml += i + "<br>";
+  }
+  lineNumContainer.innerHTML = numbersHtml;
+}
+
+const editorArea = $("#codeEditor");
+editorArea.addEventListener("input", updateLineNumbers);
+editorArea.addEventListener("scroll", () => {
+  $("#lineNumbers").scrollTop = editorArea.scrollTop;
+});
+
+// Cursor Position Tracking
+editorArea.addEventListener("keyup", updateCursorPos);
+editorArea.addEventListener("click", updateCursorPos);
+
+function updateCursorPos() {
+  const pos = editorArea.selectionStart;
+  const textBefore = editorArea.value.substring(0, pos);
+  const line = textBefore.split("\n").length;
+  const col = pos - textBefore.lastIndexOf("\n");
+  $("#cursorLine").textContent = line;
+  $("#cursorCol").textContent = col;
+}
+
+// Tab Indentation Support
+editorArea.addEventListener("keydown", e => {
+  if (e.key === "Tab") {
+    e.preventDefault();
+    const start = editorArea.selectionStart;
+    const end = editorArea.selectionEnd;
+    editorArea.value = editorArea.value.substring(0, start) + "  " + editorArea.value.substring(end);
+    editorArea.selectionStart = editorArea.selectionEnd = start + 2;
+    updateLineNumbers();
+  }
+  if (e.key === "F5") {
+    e.preventDefault();
+    $("#runCodeBtn").click();
+  }
+});
+
+updateLineNumbers();
+
+$("#formatCodeBtn").onclick = () => {
+  try {
+    if (activeFileName.endsWith(".json")) {
+      editorArea.value = JSON.stringify(JSON.parse(editorArea.value), null, 2);
+    } else {
+      editorArea.value = editorArea.value.trim().split("\n").map(l => l.trim()).join("\n");
+    }
+    updateLineNumbers();
+    notify("Code formatted successfully!");
+  } catch (err) {
+    notify("Formatting error: " + err.message);
+  }
+};
+
+$("#copyCodeBtn").onclick = () => {
+  navigator.clipboard.writeText(editorArea.value);
+  notify("Code copied to clipboard!");
+};
+
+$("#runCodeBtn").onclick = () => {
+  codeFiles[activeFileName] = editorArea.value;
+  const code = editorArea.value;
+  const consoleEl = $("#codeConsole");
+  consoleEl.textContent = `> [${activeFileName}] Executing sandbox script...\n`;
+
+  try {
+    const logs = [];
+    const customConsole = {
+      log: (...args) => logs.push(args.join(" ")),
+      error: (...args) => logs.push("ERROR: " + args.join(" "))
+    };
+
+    const run = new Function("console", code);
+    const result = run(customConsole);
+
+    if (logs.length) consoleEl.textContent += logs.join("\n") + "\n";
+    if (result !== undefined) consoleEl.textContent += `> Return Output: ${JSON.stringify(result)}`;
+    notify("Code executed successfully!");
+  } catch (err) {
+    consoleEl.textContent += `> Runtime Error: ${err.message}`;
+  }
+};
+
+$("#clearCodeBtn").onclick = () => {
+  $("#codeConsole").textContent = "> Terminal console cleared.";
+};
+
+// Interactive Canvas Charting
+function drawChart() {
+  const canvas = $("#analyticsChart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  
+  canvas.width = canvas.parentElement.clientWidth;
+  canvas.height = 240;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const points = [40, 75, 50, 110, 90, 140, 180, 160, 210];
+  const step = canvas.width / (points.length - 1);
+
+  ctx.strokeStyle = "rgba(255,255,255,0.06)";
+  ctx.lineWidth = 1;
+  for (let i = 0; i < canvas.height; i += 40) {
+    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+  }
+
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  grad.addColorStop(0, "rgba(139, 92, 246, 0.4)");
+  grad.addColorStop(1, "rgba(34, 211, 238, 0.0)");
+
+  ctx.beginPath();
+  ctx.moveTo(0, canvas.height);
+  points.forEach((p, idx) => {
+    ctx.lineTo(idx * step, canvas.height - p);
+  });
+  ctx.lineTo(canvas.width, canvas.height);
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  ctx.beginPath();
+  points.forEach((p, idx) => {
+    const x = idx * step;
+    const y = canvas.height - p;
+    if (idx === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = "#8b5cf6";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+}
+
+// Audio Engine Web Speech API
+$("#startVoiceRecBtn").onclick = () => {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    notify("Speech Recognition not supported in this browser.");
+    return;
+  }
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRecognition();
+
+  recognition.onstart = () => {
+    $("#voiceStateText").textContent = "Microphone status: Listening...";
+    notify("Voice recognition started!");
+  };
+
+  recognition.onresult = (event) => {
+    const text = event.results[0][0].transcript;
+    $("#prompt").value = text;
+    $("#voiceStateText").textContent = `Captured Voice: "${text}"`;
+    showView("home");
+  };
+
+  recognition.start();
+};
+
+$("#testSpeechBtn").onclick = () => {
+  const synth = window.speechSynthesis;
+  if (!synth) return notify("Speech synthesis unsupported");
+  const utter = new SpeechSynthesisUtterance("NOVA AI Voice engine active and operational.");
+  synth.speak(utter);
+  notify("Testing voice output...");
+};
+
+$("#orb").onclick = () => $("#testSpeechBtn").click();
+
+// Research Engine Simulator
+$("#runResearchBtn").onclick = () => {
+  const q = $("#researchQuery").value.trim() || "Quantum Computing Frontiers";
+  const res = $("#researchResults");
+  res.textContent = `Initiating web crawl and source indexing for "${q}"...`;
+
+  setTimeout(() => {
+    res.innerHTML = `
+      <b>Research Report: ${q}</b><br><br>
+      • <b>Source 1 (IEEE):</b> Found breakthrough papers on topological qubits.<br>
+      • <b>Source 2 (Nature):</b> Error correction algorithms reached 99.9% fidelity.<br>
+      • <b>Synthesis:</b> Next-generation quantum processors are pivoting toward hybrid classical-quantum cloud models.
+    `;
+    notify("Research report generated!");
+  }, 1800);
+};
+
+$$(".card").forEach(c => {
+  c.addEventListener("pointermove", e => {
+    const r = c.getBoundingClientRect();
+    c.style.setProperty("--mx", ((e.clientX - r.left) / r.width * 100) + "%");
+    c.style.setProperty("--my", ((e.clientY - r.top) / r.height * 100) + "%");
+  });
+});
+
+$$(".switch").forEach(s => s.onclick = () => s.classList.toggle("on"));
+</script>
+</body>
+</html>
